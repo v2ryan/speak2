@@ -30,6 +30,7 @@
             scroll-margin-top: 200px;
             cursor: pointer; /* 提示可點擊 */
             user-select: none; /* 防止手機長按選取文字 */
+            position: relative;
         }
 
         /* 點擊時的反饋效果 */
@@ -118,11 +119,14 @@
                     從「混日子」到<br>「神眼中的唯一」<br>
                     <span class="text-base md:text-xl text-blue-600 block mt-2">—— 一位職場青年的生命翻轉</span>
                 </h1>
-                <p class="text-xs text-gray-400 mt-2">💡 點擊任一單字即可從該處開始朗讀</p>
+                <p class="text-xs text-gray-400 mt-2 bg-blue-50 inline-block px-3 py-1 rounded-full border border-blue-100">
+                    💡 點擊任何一個詞卡，即可從該處開始朗讀
+                </p>
             </div>
             
-            <div id="article-container" class="space-y-6 pb-64 md:pb-32">
+            <div id="article-container" class="space-y-6 pb-64 md:pb-32 min-h-[300px]">
                 <!-- 內容將由 JavaScript 動態生成 -->
+                <div class="text-center text-gray-400 mt-10">載入文章中...</div>
             </div>
         </div>
     </main>
@@ -147,7 +151,7 @@
         <div id="settings-container" class="flex-1 p-4 overflow-y-auto space-y-5 bg-white">
              <!-- 聲音選擇 -->
              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">選擇聲音 (強制普通話)</label>
+                <label class="block text-sm font-medium text-gray-700">選擇聲音 (普通話)</label>
                 <select id="voiceSelect" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
                     <option value="">正在載入語音...</option>
                 </select>
@@ -169,7 +173,8 @@
 
             <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                 <p class="text-xs text-yellow-800">
-                    * 手機若發出粵語，請嘗試切換其他標示 (zh-CN) 或 (zh-TW) 的聲音。
+                    * 點擊文章單字即可從該處播放。<br>
+                    * 若無聲音，請檢查手機是否靜音。
                 </p>
             </div>
         </div>
@@ -458,69 +463,76 @@
         ];
 
         // --- 2. 資料結構扁平化 & 渲染邏輯 ---
-        // 為了支援「從任意點開始朗讀」，我們需要一個扁平化的單字列表
         let flatWordList = [];
         let wordIdCounter = 0; 
 
         function renderArticle() {
-            const container = document.getElementById('article-container');
-            container.innerHTML = '';
-            wordIdCounter = 0;
-            flatWordList = []; // 重置列表
-            
-            articleData.forEach((paragraph, pIndex) => {
-                const pDiv = document.createElement('div');
-                pDiv.className = 'flex flex-wrap gap-2 items-end'; 
+            try {
+                const container = document.getElementById('article-container');
+                container.innerHTML = '';
+                wordIdCounter = 0;
+                flatWordList = []; // 重置列表
                 
-                const isTitle = paragraph.some(w => w.type === 'title');
-                if (isTitle) {
-                    pDiv.className += ' mb-4 mt-6 border-b-2 border-blue-100 pb-2 is-title justify-center';
-                }
-
-                paragraph.forEach((word) => {
-                    const currentId = `word-${wordIdCounter}`;
-                    const currentIndex = wordIdCounter; // 閉包保留當前索引
+                articleData.forEach((paragraph, pIndex) => {
+                    const pDiv = document.createElement('div');
+                    pDiv.className = 'flex flex-wrap gap-2 items-end'; 
                     
-                    // 將單字加入扁平列表，方便後續 slice
-                    flatWordList.push({
-                        id: currentId,
-                        text: word.h,
-                        fullObj: word
+                    const isTitle = paragraph.some(w => w.type === 'title');
+                    if (isTitle) {
+                        pDiv.className += ' mb-4 mt-6 border-b-2 border-blue-100 pb-2 is-title justify-center';
+                    }
+
+                    paragraph.forEach((word) => {
+                        const currentId = `word-${wordIdCounter}`;
+                        const currentIndex = wordIdCounter; // 閉包保留當前索引
+                        
+                        // 將單字加入扁平列表，方便後續 slice
+                        flatWordList.push({
+                            id: currentId,
+                            text: word.h,
+                            fullObj: word
+                        });
+
+                        const card = document.createElement('div');
+                        card.id = currentId;
+                        
+                        // 加入點擊事件：點擊即讀
+                        card.onclick = (e) => {
+                            e.stopPropagation(); // 防止觸發其他層
+                            speakText(currentIndex);
+                        };
+
+                        if (word.type === 'punct') {
+                            card.className = 'word-card punctuation';
+                            card.innerHTML = `<span class="hanzi">${word.h}</span>`;
+                        } else if (word.type === 'title') {
+                            card.className = 'word-card';
+                            card.innerHTML = `
+                                <span class="hanzi">${word.h}</span>
+                                <span class="pinyin">${word.p}</span>
+                            `;
+                        } else {
+                            card.className = 'word-card';
+                            card.innerHTML = `
+                                <span class="hanzi">${word.h}</span>
+                                <span class="pinyin">${word.p}</span>
+                            `;
+                        }
+                        pDiv.appendChild(card);
+                        
+                        wordIdCounter++;
                     });
 
-                    const card = document.createElement('div');
-                    card.id = currentId;
-                    
-                    // 加入點擊事件：點擊即讀
-                    card.onclick = (e) => {
-                        e.stopPropagation(); // 防止觸發其他層
-                        speakText(currentIndex);
-                    };
-
-                    if (word.type === 'punct') {
-                        card.className = 'word-card punctuation';
-                        card.innerHTML = `<span class="hanzi">${word.h}</span>`;
-                    } else if (word.type === 'title') {
-                        card.className = 'word-card';
-                        card.innerHTML = `
-                            <span class="hanzi">${word.h}</span>
-                            <span class="pinyin">${word.p}</span>
-                        `;
-                    } else {
-                        card.className = 'word-card';
-                        card.innerHTML = `
-                            <span class="hanzi">${word.h}</span>
-                            <span class="pinyin">${word.p}</span>
-                        `;
-                    }
-                    pDiv.appendChild(card);
-                    
-                    wordIdCounter++;
+                    container.appendChild(pDiv);
                 });
-
-                // 每個段落結束後，在扁平列表中加入一個隱形標記（用於語音停頓）
-                // 這裡我們不加實際元素，而是邏輯處理
-            });
+            } catch (error) {
+                console.error("Render Error:", error);
+                document.getElementById('article-container').innerHTML = 
+                    `<div class="p-4 bg-red-100 text-red-700 rounded-lg">
+                        文章載入失敗，請檢查網路或重新整理。<br>
+                        錯誤代碼: ${error.message}
+                    </div>`;
+            }
         }
 
         // --- 3. TTS 語音邏輯與高亮同步 ---
@@ -578,7 +590,6 @@
             let mandarinVoices = voices.filter(v => {
                 const isChinese = v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW');
                 const isCantonese = v.lang.includes('HK') || v.name.includes('Cantonese') || v.name.includes('粵');
-                // 特殊情況：有些引擎 zh-HK 可能是普通話（少見），但為保險起見，手機上優先排除
                 return isChinese && !isCantonese;
             });
 
@@ -652,9 +663,6 @@
                     charToDomMap.push(item.id);
                 }
                 combinedText += text;
-                
-                // 為了讓語氣自然，如果該字是標點符號，可以考慮不做特殊處理，讓引擎自己斷句
-                // 但為了精確對應，我們可以保留原樣
             });
 
             const utterance = new SpeechSynthesisUtterance(combinedText);
@@ -728,7 +736,8 @@
             updatePlayButton(false);
         }
 
-        renderArticle();
+        // 啟動
+        window.addEventListener('load', renderArticle);
 
     </script>
 </body>
