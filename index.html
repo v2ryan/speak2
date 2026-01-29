@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>職場見證 - 拼音閱讀輔助</title>
+    <!-- 使用 Tailwind CSS 進行快速排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定義字體與樣式微調 */
+        body {
+            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            background-color: #f8fafc;
+            /* 防止 iOS 點擊高亮 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 詞卡樣式 - 手機版更緊湊 */
+        .word-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 0.35rem 0.2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s;
+            min-width: 2.2rem;
+            scroll-margin-top: 200px;
+            cursor: pointer; /* 提示可點擊 */
+            user-select: none; /* 防止手機長按選取文字 */
+        }
+
+        /* 點擊時的反饋效果 */
+        .word-card:active {
+            background-color: #eff6ff;
+            transform: scale(0.95);
+        }
+
+        /* 標題樣式特別處理 */
+        .is-title .hanzi {
+            font-size: 1.6rem;
+            color: #1e3a8a;
+        }
+
+        /* 正在朗讀的高亮樣式 */
+        .highlight {
+            background-color: #bfdbfe !important;
+            transform: scale(1.05);
+            z-index: 10;
+            border: 2px solid #2563eb;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .hanzi {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.1;
+        }
+
+        .pinyin {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-family: "Arial", sans-serif;
+            margin-top: 0.1rem;
+        }
+
+        /* 標點符號 */
+        .punctuation {
+            background: transparent;
+            box-shadow: none;
+            min-width: auto;
+            padding-bottom: 0.8rem;
+        }
+        
+        .punctuation .hanzi {
+            color: #9ca3af;
+        }
+
+        /* --- 面板折疊動畫樣式 --- */
+        aside {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        aside.collapsed #settings-container {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+        }
+        
+        aside.collapsed .chevron {
+            transform: rotate(180deg);
+        }
+
+        aside.collapsed {
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+        }
+
+        #settings-container {
+            max-height: 50vh;
+            opacity: 1;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- 左側：文章內容區 (可滾動) -->
+    <main class="flex-1 overflow-y-auto p-3 md:p-8 scroll-smooth" id="content-area">
+        <div class="max-w-4xl mx-auto pb-4">
+            <div id="article-header" class="text-center mb-6 mt-2">
+                <h1 class="text-xl md:text-3xl font-bold text-gray-800 leading-relaxed">
+                    從「混日子」到<br>「神眼中的唯一」<br>
+                    <span class="text-base md:text-xl text-blue-600 block mt-2">—— 一位職場青年的生命翻轉</span>
+                </h1>
+                <p class="text-xs text-gray-400 mt-2">💡 點擊任一單字即可從該處開始朗讀</p>
+            </div>
+            
+            <div id="article-container" class="space-y-6 pb-64 md:pb-32">
+                <!-- 內容將由 JavaScript 動態生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 右側：控制面板 -->
+    <aside id="control-panel" class="w-full md:w-80 bg-white border-t md:border-t-0 md:border-l border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-20 flex flex-col fixed bottom-0 md:relative md:bottom-auto">
+        
+        <!-- 標題區 -->
+        <div id="control-header" onclick="togglePanel()" class="p-4 bg-blue-600 text-white cursor-pointer flex justify-between items-center md:cursor-default select-none active:bg-blue-700 transition-colors">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                語音控制
+            </h2>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 chevron transition-transform duration-300 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+
+        <!-- 設定區 -->
+        <div id="settings-container" class="flex-1 p-4 overflow-y-auto space-y-5 bg-white">
+             <!-- 聲音選擇 -->
+             <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">選擇聲音 (強制普通話)</label>
+                <select id="voiceSelect" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
+                    <option value="">正在載入語音...</option>
+                </select>
+            </div>
+
+            <!-- 語速控制 -->
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <label class="block text-sm font-medium text-gray-700">語速</label>
+                    <span id="rateValue" class="text-sm text-gray-500">1.0</span>
+                </div>
+                <input type="range" id="rate" min="0.5" max="1.5" value="1" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+            </div>
+
+            <div class="flex items-center justify-between">
+                <label class="text-sm font-medium text-gray-700">自動捲動跟隨</label>
+                <input type="checkbox" id="autoScroll" checked class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+            </div>
+
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                <p class="text-xs text-yellow-800">
+                    * 手機若發出粵語，請嘗試切換其他標示 (zh-CN) 或 (zh-TW) 的聲音。
+                </p>
+            </div>
+        </div>
+
+        <!-- 按鈕區 -->
+        <div class="p-4 bg-gray-50 border-t border-gray-100 pb-safe md:pb-4">
+            <button id="main-action-btn" onclick="togglePlay()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition font-bold shadow-lg text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                </svg>
+                <span>從頭開始朗讀</span>
+            </button>
+        </div>
+    </aside>
+
+    <script>
+        // --- 1. 資料準備 ---
+        const articleData = [
+            // 第一段
+            [
+                {h:"去年", p:"qù nián"}, {h:"九月", p:"jiǔ yuè"}, {h:"開始", p:"kāi shǐ"}, {h:"，", p:"", type:"punct"},
+                {h:"我", p:"wǒ"}, {h:"帶著", p:"dài zhe"}, {h:"十多位", p:"shí duō wèi"}, {h:"大學生", p:"dà xué shēng"}, 
+                {h:"和", p:"hé"}, {h:"剛", p:"gāng"}, {h:"入職", p:"rù zhí"}, {h:"的", p:"de"}, {h:"年輕人", p:"nián qīng rén"}, {h:"，", p:"", type:"punct"},
+                {h:"一同", p:"yì tóng"}, {h:"參加", p:"cān jiā"}, {h:"了", p:"le"}, {h:"孔", p:"Kǒng"}, {h:"老師", p:"lǎo shī"}, 
+                {h:"「", p:"", type:"punct"}, {h:"扭轉", p:"niǔ zhuǎn"}, {h:"五力", p:"wǔ lì"}, {h:"」", p:"", type:"punct"}, 
+                {h:"的", p:"de"}, {h:"課程", p:"kè chéng"}, {h:"。", p:"", type:"punct"},
+                {h:"起初", p:"qǐ chū"}, {h:"我", p:"wǒ"}, {h:"心裡", p:"xīn lǐ"}, {h:"有些", p:"yǒu xiē"}, {h:"忐忑", p:"tǎn tè"}, {h:"，", p:"", type:"punct"},
+                {h:"擔心", p:"dān xīn"}, {h:"這群", p:"zhè qún"}, {h:"孩子", p:"hái zi"}, {h:"大多", p:"dà duō"}, {h:"還沒", p:"hái méi"}, 
+                {h:"正式", p:"zhèng shì"}, {h:"進入", p:"jìn rù"}, {h:"職場", p:"zhí chǎng"}, {h:"，", p:"", type:"punct"},
+                {h:"會不會", p:"huì bú huì"}, {h:"覺得", p:"jué de"}, {h:"課程", p:"kè chéng"}, {h:"內容", p:"nèi róng"}, 
+                {h:"太過", p:"tài guò"}, {h:"艱深", p:"jiān shēn"}, {h:"或", p:"huò"}, {h:"遙遠", p:"yáo yuǎn"}, {h:"？", p:"", type:"punct"},
+                {h:"但", p:"dàn"}, {h:"令人", p:"lìng rén"}, {h:"十分", p:"shí fēn"}, {h:"感恩", p:"gǎn ēn"}, {h:"的", p:"de"}, {h:"是", p:"shì"}, {h:"，", p:"", type:"punct"},
+                {h:"他們", p:"tā men"}, {h:"不僅", p:"bù jǐn"}, {h:"聽", p:"tīng"}, {h:"進去", p:"jìn qù"}, {h:"了", p:"le"}, {h:"，", p:"", type:"punct"},
+                {h:"更", p:"gèng"}, {h:"從中", p:"cóng zhōng"}, {h:"獲得", p:"huò dé"}, {h:"了", p:"le"}, 
+                {h:"極大", p:"jí dà"}, {h:"的", p:"de"}, {h:"啟發", p:"qǐ fā"}, {h:"與", p:"yǔ"}, {h:"提醒", p:"tí xǐng"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第二段
+            [
+                {h:"其中", p:"qí zhōng"}, {h:"，", p:"", type:"punct"}, {h:"有", p:"yǒu"}, {h:"一位", p:"yí wèi"}, 
+                {h:"年輕", p:"nián qīng"}, {h:"女孩", p:"nǚ hái"}, {h:"的", p:"de"}, {h:"轉變", p:"zhuǎn biàn"}, 
+                {h:"讓", p:"ràng"}, {h:"我", p:"wǒ"}, {h:"印象", p:"yìn xiàng"}, {h:"最", p:"zuì"}, {h:"深", p:"shēn"}, {h:"。", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"告訴", p:"gào sù"}, {h:"我", p:"wǒ"}, {h:"，", p:"", type:"punct"}, 
+                {h:"課程", p:"kè chéng"}, {h:"中", p:"zhōng"}, {h:"對", p:"duì"}, {h:"她", p:"tā"}, {h:"衝擊", p:"chōng jí"}, 
+                {h:"最大", p:"zuì dà"}, {h:"的", p:"de"}, {h:"，", p:"", type:"punct"},
+                {h:"是", p:"shì"}, {h:"孔", p:"Kǒng"}, {h:"老師", p:"lǎo shī"}, {h:"對於", p:"duì yú"}, 
+                {h:"「", p:"", type:"punct"}, {h:"什麼", p:"shén me"}, {h:"是", p:"shì"}, {h:"好", p:"hǎo"}, {h:"工作", p:"gōng zuò"}, {h:"」", p:"", type:"punct"}, 
+                {h:"的", p:"de"}, {h:"定義", p:"dìng yì"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 標題
+            [
+                {h:"打破", p:"dǎ pò", type:"title"}, {h:"舊有", p:"jiù yǒu", type:"title"}, {h:"對", p:"duì", type:"title"}, 
+                {h:"「", p:"", type:"punct"}, {h:"好", p:"hǎo", type:"title"}, {h:"工作", p:"gōng zuò", type:"title"}, {h:"」", p:"", type:"punct"}, 
+                {h:"迷思", p:"mí sī", type:"title"}
+            ],
+            // 第四段
+            [
+                {h:"過去", p:"guò qù"}, {h:"，", p:"", type:"punct"}, {h:"很多", p:"hěn duō"}, {h:"香港", p:"Xiāng gǎng"}, {h:"人", p:"rén"}, 
+                {h:"心目中", p:"xīn mù zhōng"}, {h:"的", p:"de"}, {h:"「", p:"", type:"punct"}, {h:"好", p:"hǎo"}, {h:"工作", p:"gōng zuò"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"就", p:"jiù"}, {h:"像是", p:"xiàng shì"}, {h:"傳統", p:"chuán tǒng"}, {h:"的", p:"de"}, {h:"政府", p:"zhèng fǔ"}, {h:"公職", p:"gōng zhí"}, {h:"：", p:"", type:"punct"},
+                {h:"鐵飯碗", p:"tiě fàn wǎn"}, {h:"、", p:"", type:"punct"}, {h:"穩定", p:"wěn dìng"}, {h:"、", p:"", type:"punct"}, 
+                {h:"高收入", p:"gāo shōu rù"}, {h:"、", p:"", type:"punct"}, {h:"工作量", p:"gōng zuò liàng"}, {h:"少", p:"shǎo"}, {h:"，", p:"", type:"punct"},
+                {h:"還能", p:"hái néng"}, {h:"準時", p:"zhǔn shí"}, {h:"下班", p:"xià bān"}, {h:"。", p:"", type:"punct"},
+                {h:"這位", p:"zhè wèi"}, {h:"女孩", p:"nǚ hái"}, {h:"的", p:"de"}, {h:"父母", p:"fù mǔ"}, {h:"也", p:"yě"}, 
+                {h:"深受", p:"shēn shòu"}, {h:"這種", p:"zhè zhǒng"}, {h:"觀念", p:"guān niàn"}, {h:"影響", p:"yǐng xiǎng"}, {h:"，", p:"", type:"punct"},
+                {h:"不斷", p:"bú duàn"}, {h:"鼓吹", p:"gǔ chuī"}, {h:"她", p:"tā"}, {h:"去", p:"qù"}, {h:"考", p:"kǎo"}, {h:"公務員", p:"gōng wù yuán"}, {h:"，", p:"", type:"punct"},
+                {h:"這", p:"zhè"}, {h:"讓", p:"ràng"}, {h:"她", p:"tā"}, {h:"感到", p:"gǎn dào"}, {h:"既", p:"jì"}, 
+                {h:"無奈", p:"wú nài"}, {h:"又", p:"yòu"}, {h:"充滿", p:"chōng mǎn"}, {h:"壓力", p:"yā lì"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第五段
+            [
+                {h:"然而", p:"rán ér"}, {h:"，", p:"", type:"punct"}, {h:"孔", p:"Kǒng"}, {h:"老師", p:"lǎo shī"}, {h:"在", p:"zài"}, 
+                {h:"課堂", p:"kè táng"}, {h:"上", p:"shàng"}, {h:"說", p:"shuō"}, {h:"的", p:"de"}, {h:"一席話", p:"yì xí huà"}, {h:"，", p:"", type:"punct"},
+                {h:"徹底", p:"chè dǐ"}, {h:"顛覆", p:"diān fù"}, {h:"了", p:"le"}, {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"認知", p:"rèn zhī"}, {h:"：", p:"", type:"punct"},
+                {h:"「", p:"", type:"punct"}, {h:"所謂", p:"suǒ wèi"}, {h:"『", p:"", type:"punct"}, {h:"好", p:"hǎo"}, {h:"的", p:"de"}, {h:"工作", p:"gōng zuò"}, {h:"』", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"是", p:"shì"}, {h:"能夠", p:"néng gòu"}, {h:"使", p:"shǐ"}, {h:"你", p:"nǐ"}, {h:"的", p:"de"}, 
+                {h:"生命", p:"shēng mìng"}, {h:"不斷", p:"bú duàn"}, {h:"成長", p:"chéng zhǎng"}, {h:"，", p:"", type:"punct"},
+                {h:"且", p:"qiě"}, {h:"有", p:"yǒu"}, {h:"使命感", p:"shǐ mìng gǎn"}, {h:"的", p:"de"}, {h:"工作", p:"gōng zuò"}, {h:"。", p:"", type:"punct"},
+                {h:"其實", p:"qí shí"}, {h:"，", p:"", type:"punct"}, {h:"神", p:"Shén"}, {h:"非常", p:"fēi cháng"}, {h:"看重", p:"kàn zhòng"}, 
+                {h:"我們", p:"wǒ men"}, {h:"的", p:"de"}, {h:"工作", p:"gōng zuò"}, {h:"，", p:"", type:"punct"},
+                {h:"因為", p:"yīn wèi"}, {h:"這", p:"zhè"}, {h:"是", p:"shì"}, {h:"神", p:"Shén"}, {h:"交付", p:"jiāo fù"}, {h:"給", p:"gěi"}, 
+                {h:"我們", p:"wǒ men"}, {h:"管理", p:"guǎn lǐ"}, {h:"大地", p:"dà dì"}, {h:"職責", p:"zhí zé"}, {h:"的", p:"de"}, {h:"一部分", p:"yí bù fèn"}, {h:"。", p:"", type:"punct"},
+                {h:"我們", p:"wǒ men"}, {h:"應當", p:"yīng dāng"}, {h:"在", p:"zài"}, {h:"神", p:"Shén"}, {h:"所", p:"suǒ"}, {h:"差派", p:"chā pài"}, 
+                {h:"的", p:"de"}, {h:"職場", p:"zhí chǎng"}, {h:"中", p:"zhōng"}, {h:"活出", p:"huó chū"}, {h:"美好", p:"měi hǎo"}, {h:"的", p:"de"}, {h:"見證", p:"jiàn zhèng"}, {h:"，", p:"", type:"punct"},
+                {h:"這", p:"zhè"}, {h:"不僅", p:"bù jǐn"}, {h:"是", p:"shì"}, {h:"祝福", p:"zhù fú"}, {h:"自己", p:"zì jǐ"}, {h:"，", p:"", type:"punct"},
+                {h:"更", p:"gèng"}, {h:"可以", p:"kě yǐ"}, {h:"祝福", p:"zhù fú"}, {h:"、", p:"", type:"punct"}, 
+                {h:"感染", p:"gǎn rǎn"}, {h:"身邊", p:"shēn biān"}, {h:"的", p:"de"}, {h:"同事", p:"tóng shì"}, {h:"與", p:"yǔ"}, {h:"上司", p:"shàng sī"}, {h:"。", p:"", type:"punct"}, {h:"」", p:"", type:"punct"}
+            ],
+            // 標題
+            [
+                {h:"從", p:"cóng", type:"title"}, {h:"「", p:"", type:"punct"}, {h:"不得已", p:"bù dé yǐ", type:"title"}, {h:"」", p:"", type:"punct"},
+                {h:"到", p:"dào", type:"title"}, {h:"「", p:"", type:"punct"}, {h:"為主", p:"wéi Zhǔ", type:"title"}, {h:"而", p:"ér", type:"title"}, {h:"做", p:"zuò", type:"title"}, {h:"」", p:"", type:"punct"}
+            ],
+            // 第七段
+            [
+                {h:"這番話", p:"zhè fān huà"}, {h:"如同", p:"rú tóng"}, {h:"當頭棒喝", p:"dāng tóu bàng hè"}, {h:"，", p:"", type:"punct"},
+                {h:"改變", p:"gǎi biàn"}, {h:"了", p:"le"}, {h:"她", p:"tā"}, {h:"對", p:"duì"}, {h:"工作", p:"gōng zuò"}, {h:"的", p:"de"}, {h:"態度", p:"tài dù"}, {h:"。", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"意識到", p:"yì shí dào"}, {h:"，", p:"", type:"punct"}, {h:"過去", p:"guò qù"}, {h:"那種", p:"nà zhǒng"}, 
+                {h:"「", p:"", type:"punct"}, {h:"偷懶", p:"tōu lǎn"}, {h:"、", p:"", type:"punct"}, {h:"混日子", p:"hùn rì zi"}, {h:"」", p:"", type:"punct"}, 
+                {h:"的", p:"de"}, {h:"心態", p:"xīn tài"}, {h:"，", p:"", type:"punct"},
+                {h:"其實", p:"qí shí"}, {h:"是", p:"shì"}, {h:"非常", p:"fēi cháng"}, {h:"「", p:"", type:"punct"}, {h:"失見證", p:"shī jiàn zhèng"}, {h:"」", p:"", type:"punct"}, 
+                {h:"的", p:"de"}, {h:"表現", p:"biǎo xiàn"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第八段
+            [
+                {h:"她", p:"tā"}, {h:"坦言", p:"tǎn yán"}, {h:"，", p:"", type:"punct"}, {h:"以前", p:"yǐ qián"}, {h:"的", p:"de"}, {h:"她", p:"tā"}, 
+                {h:"真的", p:"zhēn de"}, {h:"會", p:"huì"}, {h:"像", p:"xiàng"}, {h:"其他", p:"qí tā"}, {h:"同事", p:"tóng shì"}, {h:"一樣", p:"yí yàng"}, {h:"，", p:"", type:"punct"},
+                {h:"累", p:"lèi"}, {h:"了", p:"le"}, {h:"就", p:"jiù"}, {h:"趴著", p:"pā zhe"}, {h:"睡覺", p:"shuì jiào"}, {h:"，", p:"", type:"punct"},
+                {h:"有", p:"yǒu"}, {h:"空檔", p:"kòng dàng"}, {h:"就", p:"jiù"}, {h:"拿", p:"ná"}, {h:"公司", p:"gōng sī"}, {h:"的", p:"de"}, 
+                {h:"電腦", p:"diàn nǎo"}, {h:"來", p:"lái"}, {h:"打機", p:"dǎ jī"}, {h:"、", p:"", type:"punct"}, {h:"玩遊戲", p:"wán yóu xì"}, {h:"。", p:"", type:"punct"},
+                {h:"但", p:"dàn"}, {h:"現在", p:"xiàn zài"}, {h:"，", p:"", type:"punct"}, {h:"她", p:"tā"}, {h:"決定", p:"jué dìng"}, {h:"要", p:"yào"}, 
+                {h:"認真", p:"rèn zhēn"}, {h:"對待", p:"duì dài"}, {h:"手", p:"shǒu"}, {h:"中", p:"zhōng"}, {h:"的", p:"de"}, 
+                {h:"每一", p:"měi yī"}, {h:"件", p:"jiàn"}, {h:"事", p:"shì"}, {h:"。", p:"", type:"punct"},
+                {h:"由於", p:"yóu yú"}, {h:"她", p:"tā"}, {h:"本身", p:"běn shēn"}, {h:"受", p:"shòu"}, {h:"情緒", p:"qíng xù"}, {h:"疾病", p:"jí bìng"}, 
+                {h:"的", p:"de"}, {h:"影響", p:"yǐng xiǎng"}, {h:"，", p:"", type:"punct"}, {h:"容易", p:"róng yì"}, {h:"不自覺", p:"bú zì jué"}, {h:"地", p:"de"}, {h:"打瞌睡", p:"dǎ kē shuì"}, {h:"。", p:"", type:"punct"},
+                {h:"為了", p:"wèi le"}, {h:"克服", p:"kè fú"}, {h:"這", p:"zhè"}, {h:"一點", p:"yì diǎn"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"竟然", p:"jìng rán"}, {h:"主動", p:"zhǔ dòng"}, {h:"請求", p:"qǐng qiú"}, {h:"同事", p:"tóng shì"}, {h:"幫忙", p:"bāng máng"}, {h:"：", p:"", type:"punct"},
+                {h:"「", p:"", type:"punct"}, {h:"如果", p:"rú guǒ"}, {h:"大家", p:"dà jiā"}, {h:"看到", p:"kàn dào"}, {h:"我", p:"wǒ"}, {h:"打瞌睡", p:"dǎ kē shuì"}, {h:"，", p:"", type:"punct"},
+                {h:"請", p:"qǐng"}, {h:"立刻", p:"lì kè"}, {h:"叫醒", p:"jiào xǐng"}, {h:"我", p:"wǒ"}, {h:"！", p:"", type:"punct"}, {h:"」", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"這", p:"zhè"}, {h:"份", p:"fèn"}, {h:"決心", p:"jué xīn"}, {h:"，", p:"", type:"punct"},
+                {h:"只", p:"zhǐ"}, {h:"為了", p:"wèi le"}, {h:"不讓", p:"bú ràng"}, {h:"個人", p:"gè rén"}, {h:"生理", p:"shēng lǐ"}, {h:"狀況", p:"zhuàng kuàng"}, 
+                {h:"影響", p:"yǐng xiǎng"}, {h:"工作", p:"gōng zuò"}, {h:"的", p:"de"}, {h:"品質", p:"pǐn zhí"}, {h:"和", p:"hé"}, {h:"品格", p:"pǐn gé"}, {h:"。", p:"", type:"punct"}
+            ],
+             // 第九段
+            [
+                {h:"還有", p:"hái yǒu"}, {h:"，", p:"", type:"punct"}, {h:"她", p:"tā"}, {h:"心中", p:"xīn zhōng"}, {h:"有", p:"yǒu"}, 
+                {h:"一個", p:"yí gè"}, {h:"美好", p:"měi hǎo"}, {h:"的", p:"de"}, {h:"願景", p:"yuàn jǐng"}, {h:"，", p:"", type:"punct"},
+                {h:"就是", p:"jiù shì"}, {h:"希望", p:"xī wàng"}, {h:"神", p:"Shén"}, {h:"使用", p:"shǐ yòng"}, {h:"她", p:"tā"}, 
+                {h:"在", p:"zài"}, {h:"工作", p:"gōng zuò"}, {h:"上", p:"shàng"}, {h:"的", p:"de"}, {h:"表現", p:"biǎo xiàn"}, {h:"，", p:"", type:"punct"},
+                {h:"讓", p:"ràng"}, {h:"周遭", p:"zhōu zāo"}, {h:"的", p:"de"}, {h:"人", p:"rén"}, {h:"看見", p:"kàn jiàn"}, 
+                {h:"基督徒", p:"Jī dū tú"}, {h:"該", p:"gāi"}, {h:"有", p:"yǒu"}, {h:"的", p:"de"}, {h:"樣式", p:"yàng shì"}, {h:"和", p:"hé"}, {h:"品格", p:"pǐn gé"}, {h:"，", p:"", type:"punct"},
+                {h:"進而", p:"jìn ér"}, {h:"好奇", p:"hào qí"}, {h:"地", p:"de"}, {h:"問", p:"wèn"}, {h:"：", p:"", type:"punct"},
+                {h:"「", p:"", type:"punct"}, {h:"為什麼", p:"wèi shén me"}, {h:"這個", p:"zhè ge"}, {h:"人", p:"rén"}, 
+                {h:"做事", p:"zuò shì"}, {h:"這麼", p:"zhè me"}, {h:"認真", p:"rèn zhēn"}, {h:"、", p:"", type:"punct"}, {h:"這麼", p:"zhè me"}, {h:"好", p:"hǎo"}, {h:"？", p:"", type:"punct"},
+                {h:"原來", p:"yuán lái"}, {h:"，", p:"", type:"punct"}, {h:"她", p:"tā"}, {h:"是", p:"shì"}, {h:"基督徒", p:"Jī dū tú"}, {h:"。", p:"", type:"punct"}, {h:"」", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"盼望", p:"pàn wàng"}, {h:"自己", p:"zì jǐ"}, {h:"在", p:"zài"}, {h:"職場", p:"zhí chǎng"}, 
+                {h:"的", p:"de"}, {h:"生命", p:"shēng mìng"}, {h:"，", p:"", type:"punct"},
+                {h:"可以", p:"kě yǐ"}, {h:"再一次", p:"zài yí cì"}, {h:"歸", p:"guī"}, {h:"榮耀", p:"róng yào"}, {h:"給", p:"gěi"}, {h:"神", p:"Shén"}, {h:"！", p:"", type:"punct"}
+            ],
+            // 標題
+            [
+                {h:"視", p:"shì", type:"title"}, {h:"工作", p:"gōng zuò", type:"title"}, {h:"為", p:"wéi", type:"title"}, 
+                {h:"「", p:"", type:"punct"}, {h:"藝術品", p:"yì shù pǐn", type:"title"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"在", p:"zài", type:"title"}, {h:"風浪", p:"fēng làng", type:"title"}, {h:"中", p:"zhōng", type:"title"}, 
+                {h:"站立", p:"zhàn lì", type:"title"}, {h:"得", p:"de", type:"title"}, {h:"穩", p:"wěn", type:"title"}
+            ],
+            // 第十一段
+            [
+                {h:"現在", p:"xiàn zài"}, {h:"的", p:"de"}, {h:"她", p:"tā"}, {h:"，", p:"", type:"punct"},
+                {h:"徹底", p:"chè dǐ"}, {h:"擺脫", p:"bǎi tuō"}, {h:"了", p:"le"}, {h:"「", p:"", type:"punct"}, {h:"不想", p:"bù xiǎng"}, {h:"多", p:"duō"}, {h:"做", p:"zuò"}, {h:"」", p:"", type:"punct"},
+                {h:"的", p:"de"}, {h:"計較", p:"jì jiào"}, {h:"心態", p:"xīn tài"}, {h:"。", p:"", type:"punct"},
+                {h:"這", p:"zhè"}, {h:"並不是", p:"bìng bú shì"}, {h:"說", p:"shuō"}, {h:"她", p:"tā"}, {h:"變成", p:"biàn chéng"}, {h:"了", p:"le"}, 
+                {h:"盲目", p:"máng mù"}, {h:"的", p:"de"}, {h:"工作狂", p:"gōng zuò kuáng"}, {h:"，", p:"", type:"punct"},
+                {h:"而是", p:"ér shì"}, {h:"她", p:"tā"}, {h:"在", p:"zài"}, {h:"工作", p:"gōng zuò"}, {h:"時", p:"shí"}, {h:"，", p:"", type:"punct"},
+                {h:"會", p:"huì"}, {h:"多", p:"duō"}, {h:"花", p:"huā"}, {h:"一份", p:"yí fèn"}, {h:"心思", p:"xīn sī"}, {h:"去", p:"qù"}, {h:"想", p:"xiǎng"}, {h:"：", p:"", type:"punct"},
+                {h:"「", p:"", type:"punct"}, {h:"這", p:"zhè"}, {h:"件", p:"jiàn"}, {h:"事", p:"shì"}, {h:"怎麼樣", p:"zěn me yàng"}, 
+                {h:"可以", p:"kě yǐ"}, {h:"做", p:"zuò"}, {h:"得", p:"de"}, {h:"更好", p:"gèng hǎo"}, {h:"？", p:"", type:"punct"}, {h:"」", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"開始", p:"kāi shǐ"}, {h:"盡力", p:"jìn lì"}, {h:"去", p:"qù"}, {h:"了解", p:"liǎo jiě"}, 
+                {h:"社會", p:"shè huì"}, {h:"現況", p:"xiàn kuàng"}, {h:"的", p:"de"}, {h:"需求", p:"xū qiú"}, {h:"，", p:"", type:"punct"},
+                {h:"以及", p:"yǐ jí"}, {h:"老闆", p:"lǎo bǎn"}, {h:"心中", p:"xīn zhōng"}, {h:"真正", p:"zhēn zhèng"}, {h:"的", p:"de"}, {h:"期望", p:"qī wàng"}, {h:"。", p:"", type:"punct"},
+                {h:"對", p:"duì"}, {h:"她", p:"tā"}, {h:"而言", p:"ér yán"}, {h:"，", p:"", type:"punct"},
+                {h:"工作", p:"gōng zuò"}, {h:"不再", p:"bú zài"}, {h:"只是", p:"zhǐ shì"}, {h:"一份", p:"yí fèn"}, {h:"糊口", p:"hú kǒu"}, {h:"的", p:"de"}, {h:"差事", p:"chāi shì"}, {h:"，", p:"", type:"punct"},
+                {h:"而是", p:"ér shì"}, {h:"一個", p:"yí gè"}, {h:"需要", p:"xū yào"}, {h:"精心", p:"jīng xīn"}, {h:"雕琢", p:"diāo zhuó"}, {h:"的", p:"de"}, 
+                {h:"「", p:"", type:"punct"}, {h:"藝術品", p:"yì shù pǐn"}, {h:"」", p:"", type:"punct"}, {h:"。", p:"", type:"punct"}
+            ],
+             // 第十二段
+            [
+                {h:"這種", p:"zhè zhǒng"}, {h:"轉變", p:"zhuǎn biàn"}, {h:"甚至", p:"shèn zhì"}, {h:"延伸", p:"yán shēn"}, {h:"到", p:"dào"}, {h:"了", p:"le"}, 
+                {h:"對", p:"duì"}, {h:"人", p:"rén"}, {h:"的", p:"de"}, {h:"關懷", p:"guān huái"}, {h:"，", p:"", type:"punct"},
+                {h:"正如", p:"zhèng rú"}, {h:"孔", p:"Kǒng"}, {h:"老師", p:"lǎo shī"}, {h:"常常", p:"cháng cháng"}, {h:"勉勵", p:"miǎn lì"}, {h:"我們", p:"wǒ men"}, {h:"：", p:"", type:"punct"},
+                {h:"其實", p:"qí shí"}, {h:"「", p:"", type:"punct"}, {h:"利他", p:"lì tā"}, {h:"就是", p:"jiù shì"}, {h:"利己", p:"lì jǐ"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"所以", p:"suǒ yǐ"}, {h:"當", p:"dāng"}, {h:"她", p:"tā"}, {h:"看見", p:"kàn jiàn"}, {h:"同事", p:"tóng shì"}, 
+                {h:"忙", p:"máng"}, {h:"得", p:"de"}, {h:"不可開交", p:"bù kě kāi jiāo"}, {h:"時", p:"shí"}, {h:"，", p:"", type:"punct"},
+                {h:"即使", p:"jí shǐ"}, {h:"有些", p:"yǒu xiē"}, {h:"事情", p:"shì qíng"}, {h:"並", p:"bìng"}, {h:"不屬於", p:"bù shǔ yú"}, 
+                {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"職責", p:"zhí zé"}, {h:"範圍", p:"fàn wéi"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"也", p:"yě"}, {h:"願意", p:"yuàn yì"}, {h:"主動", p:"zhǔ dòng"}, {h:"伸出", p:"shēn chū"}, {h:"援手", p:"yuán shǒu"}, {h:"。", p:"", type:"punct"},
+                {h:"後來", p:"hòu lái"}, {h:"，", p:"", type:"punct"}, {h:"她", p:"tā"}, {h:"更", p:"gèng"}, {h:"主動", p:"zhǔ dòng"}, {h:"照顧", p:"zhào gù"}, {h:"新進", p:"xīn jìn"}, {h:"的", p:"de"}, {h:"同事", p:"tóng shì"}, {h:"，", p:"", type:"punct"},
+                {h:"做事", p:"zuò shì"}, {h:"的", p:"de"}, {h:"效率", p:"xiào lǜ"}, {h:"不僅", p:"bù jǐn"}, {h:"提升", p:"tí shēng"}, {h:"了", p:"le"}, {h:"，", p:"", type:"punct"},
+                {h:"連", p:"lián"}, {h:"設計", p:"shè jì"}, {h:"出來", p:"chū lái"}, {h:"的", p:"de"}, {h:"成果", p:"chéng guǒ"}, 
+                {h:"也", p:"yě"}, {h:"明顯", p:"míng xiǎn"}, {h:"變得", p:"biàn de"}, {h:"更", p:"gèng"}, {h:"有", p:"yǒu"}, {h:"巧思", p:"qiǎo sī"}, {h:"、", p:"", type:"punct"}, {h:"更", p:"gèng"}, {h:"漂亮", p:"piào liàng"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第十三段
+            [
+                {h:"更", p:"gèng"}, {h:"寶貴", p:"bǎo guì"}, {h:"的", p:"de"}, {h:"是", p:"shì"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"內在", p:"nèi zài"}, {h:"生命", p:"shēng mìng"}, {h:"也", p:"yě"}, {h:"經歷", p:"jīng lì"}, {h:"了", p:"le"}, {h:"更新", p:"gēng xīn"}, {h:"。", p:"", type:"punct"},
+                {h:"過去", p:"guò qù"}, {h:"，", p:"", type:"punct"}, {h:"當", p:"dāng"}, {h:"看見", p:"kàn jiàn"}, {h:"大量", p:"dà liàng"}, {h:"工作", p:"gōng zuò"}, 
+                {h:"堆積如山", p:"duī jī rú shān"}, {h:"時", p:"shí"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"總會", p:"zǒng huì"}, {h:"感到", p:"gǎn dào"}, {h:"焦慮", p:"jiāo lǜ"}, {h:"緊張", p:"jǐn zhāng"}, {h:"，", p:"", type:"punct"},
+                {h:"情緒", p:"qíng xù"}, {h:"容易", p:"róng yì"}, {h:"波動", p:"bō dòng"}, {h:"；", p:"", type:"punct"},
+                {h:"但", p:"dàn"}, {h:"現在", p:"xiàn zài"}, {h:"，", p:"", type:"punct"}, {h:"因為", p:"yīn wèi"}, {h:"學會", p:"xué huì"}, {h:"了", p:"le"}, 
+                {h:"凡事", p:"fán shì"}, {h:"交託", p:"jiāo tuō"}, {h:"給", p:"gěi"}, {h:"主", p:"Zhǔ"}, {h:"，", p:"", type:"punct"},
+                {h:"即便", p:"jí biàn"}, {h:"面對", p:"miàn duì"}, {h:"艱難", p:"jiān nán"}, {h:"的", p:"de"}, {h:"任務", p:"rèn wù"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"心情", p:"xīn qíng"}, {h:"也", p:"yě"}, {h:"能", p:"néng"}, {h:"變得", p:"biàn de"}, 
+                {h:"輕省", p:"qīng shěng"}, {h:"自在", p:"zì zài"}, {h:"，", p:"", type:"punct"},
+                {h:"情緒", p:"qíng xù"}, {h:"控制", p:"kòng zhì"}, {h:"也", p:"yě"}, {h:"穩定", p:"wěn dìng"}, {h:"了", p:"le"}, {h:"許多", p:"xǔ duō"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第十四段
+            [
+                {h:"神", p:"Shén"}, {h:"的", p:"de"}, {h:"工作", p:"gōng zuò"}, {h:"很", p:"hěn"}, {h:"奇妙", p:"qí miào"}, {h:"！", p:"", type:"punct"},
+                {h:"在", p:"zài"}, {h:"剛", p:"gāng"}, {h:"過去", p:"guò qù"}, {h:"的", p:"de"}, 
+                {h:"12月", p:"shí èr yuè"}, {h:"31日", p:"sān shí yī rì"}, {h:"，", p:"", type:"punct"},
+                {h:"公司", p:"gōng sī"}, {h:"突然", p:"tū rán"}, {h:"進行", p:"jìn xíng"}, {h:"了", p:"le"}, {h:"一波", p:"yì bō"}, {h:"大裁員", p:"dà cái yuán"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"所在", p:"suǒ zài"}, {h:"的", p:"de"}, {h:"部門", p:"bù mén"}, {h:"一次", p:"yí cì"}, {h:"解雇", p:"jiě gù"}, {h:"了", p:"le"}, {h:"三位", p:"sān wèi"}, {h:"職員", p:"zhí yuán"}, {h:"；", p:"", type:"punct"},
+                {h:"但", p:"dàn"}, {h:"充滿", p:"chōng mǎn"}, {h:"感恩", p:"gǎn ēn"}, {h:"的", p:"de"}, {h:"是", p:"shì"}, {h:"，", p:"", type:"punct"},
+                {h:"正因為", p:"zhèng yīn wèi"}, {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"生命", p:"shēng mìng"}, {h:"與", p:"yǔ"}, 
+                {h:"工作", p:"gōng zuò"}, {h:"態度", p:"tài dù"}, {h:"上", p:"shàng"}, {h:"巨大", p:"jù dà"}, {h:"的", p:"de"}, {h:"翻轉", p:"fān zhuǎn"}, {h:"，", p:"", type:"punct"},
+                {h:"不僅", p:"bù jǐn"}, {h:"工作", p:"gōng zuò"}, {h:"成果", p:"chéng guǒ"}, {h:"被", p:"bèi"}, {h:"看見", p:"kàn jiàn"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"也", p:"yě"}, {h:"得以", p:"dé yǐ"}, {h:"被", p:"bèi"}, {h:"公司", p:"gōng sī"}, {h:"留任", p:"liú rèn"}, {h:"，", p:"", type:"punct"},
+                {h:"在", p:"zài"}, {h:"職場", p:"zhí chǎng"}, {h:"的", p:"de"}, {h:"風浪", p:"fēng làng"}, {h:"中", p:"zhōng"}, 
+                {h:"站立", p:"zhàn lì"}, {h:"得", p:"de"}, {h:"穩", p:"wěn"}, {h:"！", p:"", type:"punct"}
+            ],
+            // 標題
+            [
+                {h:"結語", p:"jié yǔ", type:"title"}, {h:"：", p:"", type:"punct"}, 
+                {h:"活出", p:"huó chū", type:"title"}, {h:"「", p:"", type:"punct"}, {h:"真我", p:"zhēn wǒ", type:"title"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"不斷", p:"bú duàn", type:"title"}, {h:"成長", p:"chéng zhǎng", type:"title"}, {h:"，", p:"", type:"punct"},
+                {h:"先", p:"xiān", type:"title"}, {h:"做", p:"zuò", type:"title"}, {h:"敬虔人", p:"jìng qián rén", type:"title"}, {h:"！", p:"", type:"punct"}
+            ],
+            // 第十六段
+            [
+                {h:"回首", p:"huí shǒu"}, {h:"這", p:"zhè"}, {h:"一切", p:"yí qiè"}, {h:"，", p:"", type:"punct"},
+                {h:"真的", p:"zhēn de"}, {h:"非常", p:"fēi cháng"}, {h:"感恩", p:"gǎn ēn"}, {h:"。", p:"", type:"punct"},
+                {h:"我", p:"wǒ"}, {h:"從未", p:"cóng wèi"}, {h:"想過", p:"xiǎng guò"}, {h:"，", p:"", type:"punct"},
+                {h:"當初", p:"dāng chū"}, {h:"一個", p:"yí gè"}, {h:"簡單", p:"jiǎn dān"}, {h:"的", p:"de"}, {h:"邀請", p:"yāo qǐng"}, {h:"，", p:"", type:"punct"},
+                {h:"竟能", p:"jìng néng"}, {h:"帶給", p:"dài gěi"}, {h:"她", p:"tā"}, {h:"在", p:"zài"}, {h:"職場", p:"zhí chǎng"}, 
+                {h:"與", p:"yǔ"}, {h:"生命", p:"shēng mìng"}, {h:"中", p:"zhōng"}, {h:"如此", p:"rú cǐ"}, 
+                {h:"巨大", p:"jù dà"}, {h:"的", p:"de"}, {h:"更新", p:"gēng xīn"}, {h:"與", p:"yǔ"}, {h:"翻轉", p:"fān zhuǎn"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第十七段
+            [
+                {h:"過去", p:"guò qù"}, {h:"，", p:"", type:"punct"}, {h:"她", p:"tā"}, {h:"深受", p:"shēn shòu"}, {h:"世俗", p:"shì sú"}, 
+                {h:"價值觀", p:"jià zhí guān"}, {h:"的", p:"de"}, {h:"影響", p:"yǐng xiǎng"}, {h:"，", p:"", type:"punct"},
+                {h:"認為", p:"rèn wéi"}, {h:"所謂", p:"suǒ wèi"}, {h:"的", p:"de"}, {h:"「", p:"", type:"punct"}, {h:"第一", p:"dì yī"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"就是", p:"jiù shì"}, {h:"擁有", p:"yōng yǒu"}, {h:"一份", p:"yí fèn"}, {h:"像", p:"xiàng"}, {h:"公務員", p:"gōng wù yuán"}, {h:"那樣", p:"nà yàng"}, 
+                {h:"「", p:"", type:"punct"}, {h:"最好", p:"zuì hǎo"}, {h:"」", p:"", type:"punct"}, {h:"的", p:"de"}, {h:"工作", p:"gōng zuò"}, {h:"——", p:"", type:"punct"},
+                {h:"準時", p:"zhǔn shí"}, {h:"上下班", p:"shàng xià bān"}, {h:"、", p:"", type:"punct"}, {h:"不需要", p:"bù xū yào"}, 
+                {h:"太", p:"tài"}, {h:"努力", p:"nǔ lì"}, {h:"、", p:"", type:"punct"}, {h:"可以", p:"kě yǐ"}, 
+                {h:"「", p:"", type:"punct"}, {h:"躺平", p:"tǎng píng"}, {h:"」", p:"", type:"punct"}, {h:"。", p:"", type:"punct"},
+                {h:"但", p:"dàn"}, {h:"在", p:"zài"}, {h:"聽完", p:"tīng wán"}, {h:"課", p:"kè"}, {h:"後", p:"hòu"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"工作觀", p:"gōng zuò guān"}, {h:"徹底", p:"chè dǐ"}, {h:"改變", p:"gǎi biàn"}, {h:"了", p:"le"}, {h:"。", p:"", type:"punct"},
+                {h:"現在", p:"xiàn zài"}, {h:"她", p:"tā"}, {h:"明白", p:"míng bái"}, {h:"，", p:"", type:"punct"},
+                {h:"我們", p:"wǒ men"}, {h:"所", p:"suǒ"}, {h:"追求", p:"zhuī qiú"}, {h:"的", p:"de"}, {h:"「", p:"", type:"punct"}, {h:"唯一", p:"wéi yī"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"是", p:"shì"}, {h:"要", p:"yào"}, {h:"活出", p:"huó chū"}, {h:"我們", p:"wǒ men"}, {h:"在", p:"zài"}, 
+                {h:"神", p:"Shén"}, {h:"國度", p:"guó dù"}, {h:"裡", p:"lǐ"}, {h:"的", p:"de"}, {h:"獨特", p:"dú tè"}, {h:"職分", p:"zhí fèn"}, {h:"，", p:"", type:"punct"},
+                {h:"明白", p:"míng bái"}, {h:"神", p:"Shén"}, {h:"創造", p:"chuàng zào"}, {h:"我們", p:"wǒ men"}, {h:"的", p:"de"}, 
+                {h:"目的", p:"mù dì"}, {h:"和", p:"hé"}, {h:"使命", p:"shǐ mìng"}, {h:"是", p:"shì"}, {h:"甚麼", p:"shén me"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第十八段
+            [
+                {h:"追求", p:"zhuī qiú"}, {h:"「", p:"", type:"punct"}, {h:"唯一", p:"wéi yī"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"其實", p:"qí shí"}, {h:"是", p:"shì"}, {h:"一個", p:"yí gè"}, {h:"生命", p:"shēng mìng"}, {h:"不斷", p:"bú duàn"}, {h:"提升", p:"tí shēng"}, {h:"的", p:"de"}, {h:"過程", p:"guò chéng"}, {h:"。", p:"", type:"punct"},
+                {h:"就", p:"jiù"}, {h:"像", p:"xiàng"}, {h:"這位", p:"zhè wèi"}, {h:"職場", p:"zhí chǎng"}, {h:"青年", p:"qīng nián"}, {h:"一樣", p:"yí yàng"}, {h:"，", p:"", type:"punct"},
+                {h:"當", p:"dāng"}, {h:"她", p:"tā"}, {h:"找到", p:"zhǎo dào"}, {h:"了", p:"le"}, {h:"神", p:"Shén"}, {h:"眼", p:"yǎn"}, {h:"中", p:"zhōng"}, {h:"的", p:"de"}, 
+                {h:"「", p:"", type:"punct"}, {h:"真我", p:"zhēn wǒ"}, {h:"」", p:"", type:"punct"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"就", p:"jiù"}, {h:"不再", p:"bú zài"}, {h:"滿足", p:"mǎn zú"}, {h:"於", p:"yú"}, {h:"現狀", p:"xiàn zhuàng"}, {h:"，", p:"", type:"punct"},
+                {h:"而是", p:"ér shì"}, {h:"不斷", p:"bú duàn"}, {h:"追求", p:"zhuī qiú"}, {h:"成長", p:"chéng zhǎng"}, {h:"和", p:"hé"}, {h:"進步", p:"jìn bù"}, {h:"，", p:"", type:"punct"},
+                {h:"努力", p:"nǔ lì"}, {h:"活出", p:"huó chū"}, {h:"神", p:"Shén"}, {h:"所", p:"suǒ"}, {h:"賜予", p:"cì yǔ"}, 
+                {h:"那個", p:"nà gè"}, {h:"「", p:"", type:"punct"}, {h:"真我", p:"zhēn wǒ"}, {h:"」", p:"", type:"punct"}, {h:"中", p:"zhōng"}, {h:"的", p:"de"}, 
+                {h:"「", p:"", type:"punct"}, {h:"第一", p:"dì yī"}, {h:"」", p:"", type:"punct"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第十九段
+            [
+                {h:"沒想到", p:"méi xiǎng dào"}, {h:"，", p:"", type:"punct"}, {h:"隨著", p:"suí zhe"}, {h:"心態", p:"xīn tài"}, {h:"的", p:"de"}, {h:"改變", p:"gǎi biàn"}, {h:"，", p:"", type:"punct"},
+                {h:"連", p:"lián"}, {h:"困擾", p:"kùn rǎo"}, {h:"她", p:"tā"}, {h:"多年", p:"duō nián"}, {h:"的", p:"de"}, {h:"情緒病", p:"qíng xù bìng"}, {h:"也", p:"yě"}, 
+                {h:"大幅", p:"dà fú"}, {h:"好轉", p:"hǎo zhuǎn"}, {h:"，", p:"", type:"punct"},
+                {h:"老闆", p:"lǎo bǎn"}, {h:"對", p:"duì"}, {h:"她", p:"tā"}, {h:"越發", p:"yuè fā"}, {h:"認可", p:"rèn kě"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"也", p:"yě"}, {h:"越來越", p:"yuè lái yuè"}, {h:"感受", p:"gǎn shòu"}, {h:"到", p:"dào"}, {h:"工作", p:"gōng zuò"}, 
+                {h:"的", p:"de"}, {h:"意義", p:"yì yì"}, {h:"與", p:"yǔ"}, {h:"使命", p:"shǐ mìng"}, {h:"。", p:"", type:"punct"},
+                {h:"最後", p:"zuì hòu"}, {h:"，", p:"", type:"punct"}, {h:"居然", p:"jū rán"}, {h:"在", p:"zài"}, {h:"這", p:"zhè"}, 
+                {h:"殘酷", p:"cán kù"}, {h:"的", p:"de"}, {h:"職場", p:"zhí chǎng"}, {h:"中", p:"zhōng"}, {h:"，", p:"", type:"punct"},
+                {h:"她", p:"tā"}, {h:"不僅", p:"bù jǐn"}, {h:"「", p:"", type:"punct"}, {h:"生存", p:"shēng cún"}, {h:"」", p:"", type:"punct"}, 
+                {h:"（", p:"", type:"punct"}, {h:"Survive", p:""}, {h:"）", p:"", type:"punct"}, {h:"了", p:"le"}, {h:"下來", p:"xià lái"}, {h:"，", p:"", type:"punct"},
+                {h:"更", p:"gèng"}, {h:"在", p:"zài"}, {h:"同事", p:"tóng shì"}, {h:"之間", p:"zhī jiān"}, {h:"建立", p:"jiàn lì"}, {h:"了", p:"le"}, 
+                {h:"美好", p:"měi hǎo"}, {h:"的", p:"de"}, {h:"生命", p:"shēng mìng"}, {h:"見證", p:"jiàn zhèng"}, {h:"和", p:"hé"}, {h:"影響力", p:"yǐng xiǎng lì"}, {h:"。", p:"", type:"punct"}
+            ],
+            // 第二十段
+            [
+                {h:"今天", p:"jīn tiān"}, {h:"，", p:"", type:"punct"}, {h:"這個", p:"zhè ge"}, {h:"孩子", p:"hái zi"}, {h:"真的", p:"zhēn de"}, 
+                {h:"學會", p:"xué huì"}, {h:"了", p:"le"}, {h:"孔", p:"Kǒng"}, {h:"老師", p:"lǎo shī"}, {h:"所", p:"suǒ"}, {h:"教導", p:"jiào dǎo"}, {h:"的", p:"de"}, {h:"：", p:"", type:"punct"},
+                {h:"「", p:"", type:"punct"}, {h:"先", p:"xiān"}, {h:"做", p:"zuò"}, {h:"敬虔人", p:"jìng qián rén"}, {h:"，", p:"", type:"punct"}, 
+                {h:"才", p:"cái"}, {h:"做", p:"zuò"}, {h:"敬虔事", p:"jìng qián shì"}, {h:"。", p:"", type:"punct"}, {h:"」", p:"", type:"punct"},
+                {h:"我", p:"wǒ"}, {h:"真", p:"zhēn"}, {h:"為", p:"wèi"}, {h:"這個", p:"zhè ge"}, {h:"孩子", p:"hái zi"}, {h:"感到", p:"gǎn dào"}, 
+                {h:"非常", p:"fēi cháng"}, {h:"感恩", p:"gǎn ēn"}, {h:"和", p:"hé"}, {h:"驕傲", p:"jiāo ào"}, {h:"，", p:"", type:"punct"},
+                {h:"也", p:"yě"}, {h:"衷心", p:"zhōng xīn"}, {h:"感謝", p:"gǎn xiè"}, {h:"主", p:"Zhǔ"}, {h:"耶穌", p:"Yē sū"}, 
+                {h:"對", p:"duì"}, {h:"她", p:"tā"}, {h:"的", p:"de"}, {h:"恩典", p:"ēn diǎn"}, {h:"與", p:"yǔ"}, {h:"塑造", p:"sù zào"}, {h:"！", p:"", type:"punct"}
+            ]
+        ];
+
+        // --- 2. 資料結構扁平化 & 渲染邏輯 ---
+        // 為了支援「從任意點開始朗讀」，我們需要一個扁平化的單字列表
+        let flatWordList = [];
+        let wordIdCounter = 0; 
+
+        function renderArticle() {
+            const container = document.getElementById('article-container');
+            container.innerHTML = '';
+            wordIdCounter = 0;
+            flatWordList = []; // 重置列表
+            
+            articleData.forEach((paragraph, pIndex) => {
+                const pDiv = document.createElement('div');
+                pDiv.className = 'flex flex-wrap gap-2 items-end'; 
+                
+                const isTitle = paragraph.some(w => w.type === 'title');
+                if (isTitle) {
+                    pDiv.className += ' mb-4 mt-6 border-b-2 border-blue-100 pb-2 is-title justify-center';
+                }
+
+                paragraph.forEach((word) => {
+                    const currentId = `word-${wordIdCounter}`;
+                    const currentIndex = wordIdCounter; // 閉包保留當前索引
+                    
+                    // 將單字加入扁平列表，方便後續 slice
+                    flatWordList.push({
+                        id: currentId,
+                        text: word.h,
+                        fullObj: word
+                    });
+
+                    const card = document.createElement('div');
+                    card.id = currentId;
+                    
+                    // 加入點擊事件：點擊即讀
+                    card.onclick = (e) => {
+                        e.stopPropagation(); // 防止觸發其他層
+                        speakText(currentIndex);
+                    };
+
+                    if (word.type === 'punct') {
+                        card.className = 'word-card punctuation';
+                        card.innerHTML = `<span class="hanzi">${word.h}</span>`;
+                    } else if (word.type === 'title') {
+                        card.className = 'word-card';
+                        card.innerHTML = `
+                            <span class="hanzi">${word.h}</span>
+                            <span class="pinyin">${word.p}</span>
+                        `;
+                    } else {
+                        card.className = 'word-card';
+                        card.innerHTML = `
+                            <span class="hanzi">${word.h}</span>
+                            <span class="pinyin">${word.p}</span>
+                        `;
+                    }
+                    pDiv.appendChild(card);
+                    
+                    wordIdCounter++;
+                });
+
+                // 每個段落結束後，在扁平列表中加入一個隱形標記（用於語音停頓）
+                // 這裡我們不加實際元素，而是邏輯處理
+            });
+        }
+
+        // --- 3. TTS 語音邏輯與高亮同步 ---
+        const synth = window.speechSynthesis;
+        let voices = [];
+        const voiceSelect = document.getElementById('voiceSelect');
+        const rateInput = document.getElementById('rate');
+        const rateValue = document.getElementById('rateValue');
+
+        rateInput.oninput = () => rateValue.textContent = rateInput.value;
+
+        // UI 狀態控制
+        function togglePanel() {
+            const panel = document.getElementById('control-panel');
+            panel.classList.toggle('collapsed');
+        }
+
+        function togglePlay() {
+            if (synth.speaking) {
+                stopSpeaking();
+            } else {
+                speakText(0); // 預設從頭開始
+            }
+        }
+
+        function updatePlayButton(isPlaying) {
+            const btn = document.getElementById('main-action-btn');
+            if (isPlaying) {
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+                    </svg>
+                    <span>停止播放</span>
+                `;
+            } else {
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                    </svg>
+                    <span>從頭開始朗讀</span>
+                `;
+            }
+        }
+
+        function loadVoices() {
+            voices = synth.getVoices();
+            voiceSelect.innerHTML = '';
+            
+            // 嚴格篩選 Mandarin (CN, TW, SG)
+            // 排除含有 'Cantonese' 或 'HK' 的語音，除非它們明確標記為 zh-CN
+            let mandarinVoices = voices.filter(v => {
+                const isChinese = v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW');
+                const isCantonese = v.lang.includes('HK') || v.name.includes('Cantonese') || v.name.includes('粵');
+                // 特殊情況：有些引擎 zh-HK 可能是普通話（少見），但為保險起見，手機上優先排除
+                return isChinese && !isCantonese;
+            });
+
+            // 兜底：如果真的找不到，才放寬條件
+            if (mandarinVoices.length === 0) {
+                 mandarinVoices = voices.filter(v => v.lang.includes('zh'));
+            }
+            
+            if (mandarinVoices.length === 0) {
+                const option = document.createElement('option');
+                option.text = "未偵測到普通話語音 (將使用系統預設)";
+                option.value = "default";
+                voiceSelect.add(option);
+            } else {
+                // 排序優化：優先顯示常見的高品質語音
+                mandarinVoices.sort((a, b) => {
+                    const priorityNames = ['Google 國語', 'Google Putonghua', 'Microsoft Huihui', 'Ting-Ting', 'Meijia'];
+                    const aScore = priorityNames.some(n => a.name.includes(n)) ? 1 : 0;
+                    const bScore = priorityNames.some(n => b.name.includes(n)) ? 1 : 0;
+                    return bScore - aScore;
+                });
+
+                mandarinVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    // 顯示更清楚的語言標籤
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.value = voice.name;
+                    voiceSelect.appendChild(option);
+                });
+            }
+        }
+
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+        }
+
+        /**
+         * 開始朗讀
+         * @param {number} startIndex - 從第幾個字開始讀 (0 為從頭)
+         */
+        function speakText(startIndex = 0) {
+            // iOS Chrome/Safari 語音加載修復
+            if (voices.length === 0) {
+                loadVoices();
+            }
+
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            clearHighlights();
+
+            // 自動折疊面板
+            document.getElementById('control-panel').classList.add('collapsed');
+
+            // --- 核心邏輯：從 startIndex 開始重建文本與映射 ---
+            let charToDomMap = []; // 映射：當前朗讀字串的第 N 個字元 -> 對應的 DOM ID
+            let combinedText = "";
+            
+            // 只需要從點擊的那個字開始
+            const wordsToSpeak = flatWordList.slice(startIndex);
+
+            wordsToSpeak.forEach(item => {
+                const text = item.text;
+                // 每個字元都對應到同一個 ID
+                for (let i = 0; i < text.length; i++) {
+                    charToDomMap.push(item.id);
+                }
+                combinedText += text;
+                
+                // 為了讓語氣自然，如果該字是標點符號，可以考慮不做特殊處理，讓引擎自己斷句
+                // 但為了精確對應，我們可以保留原樣
+            });
+
+            const utterance = new SpeechSynthesisUtterance(combinedText);
+            
+            // --- 關鍵修復：強制語言設定 ---
+            const selectedVoiceName = voiceSelect.value;
+            let selectedVoice = voices.find(v => v.name === selectedVoiceName);
+            
+            // 如果選到的聲音是空的，或者看起來像是粵語（雙重保險），則強制使用第一個普通話聲音
+            if (!selectedVoice || selectedVoice.lang.includes('HK') || selectedVoice.name.includes('Cantonese')) {
+                 // 嘗試找一個安全的普通話聲音
+                 selectedVoice = voices.find(v => (v.lang === 'zh-CN' || v.lang === 'zh-TW') && !v.name.includes('Cantonese'));
+            }
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+                // 強制覆蓋 lang 屬性，確保 iOS 不會因為 zh-Hant 網頁內容而自動切換到粵語
+                // 如果語音引擎本身是 zh-TW (如 Meijia)，就用 zh-TW，否則用 zh-CN
+                utterance.lang = selectedVoice.lang; 
+            } else {
+                // 最底層 Fallback：強制設為 zh-CN
+                utterance.lang = 'zh-CN'; 
+            }
+
+            utterance.rate = rateInput.value;
+            
+            utterance.onboundary = (event) => {
+                if (event.name === 'word' || event.name === 'sentence') {
+                    const charIndex = event.charIndex;
+                    if (charIndex < charToDomMap.length) {
+                        const targetId = charToDomMap[charIndex];
+                        if(targetId) {
+                            const targetEl = document.getElementById(targetId);
+                            if (targetEl) {
+                                clearHighlights();
+                                targetEl.classList.add('highlight');
+                                if (document.getElementById('autoScroll').checked) {
+                                    targetEl.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'center'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            utterance.onstart = () => {
+                updatePlayButton(true);
+            };
+
+            utterance.onend = () => {
+                clearHighlights();
+                updatePlayButton(false);
+            };
+
+            utterance.onerror = (e) => {
+                console.error("Speech Error:", e);
+                updatePlayButton(false);
+            };
+
+            synth.speak(utterance);
+        }
+
+        function stopSpeaking() {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            clearHighlights();
+            updatePlayButton(false);
+        }
+
+        renderArticle();
+
+    </script>
+</body>
+</html>
